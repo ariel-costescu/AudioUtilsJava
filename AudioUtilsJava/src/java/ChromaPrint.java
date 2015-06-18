@@ -3,7 +3,7 @@ public class ChromaPrint {
 	final static String audioUtilsLocation;
 	
 	static {
-		audioUtilsLocation = System.getenv("AUDIO_UTILS_LOCATION");
+		audioUtilsLocation = System.getProperty("AUDIO_UTILS_LOCATION", System.getenv("AUDIO_UTILS_LOCATION"));
 		System.load("c:\\windows\\system32\\AVCODEC-56.DLL");
 		System.load("c:\\windows\\system32\\AVFORMAT-56.DLL");
 		System.load("c:\\windows\\system32\\AVUTIL-54.DLL");

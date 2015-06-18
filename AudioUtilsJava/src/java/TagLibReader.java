@@ -3,7 +3,7 @@ public class TagLibReader {
 	final static String audioUtilsLocation;
 	
 	static {
-		audioUtilsLocation = System.getenv("AUDIO_UTILS_LOCATION");
+		audioUtilsLocation = System.getProperty("AUDIO_UTILS_LOCATION", System.getenv("AUDIO_UTILS_LOCATION"));
 		System.load("c:\\windows\\system32\\KERNEL32.DLL");
 		System.load("c:\\windows\\system32\\MSVCRT.DLL");
 		System.load("c:\\windows\\system32\\LIBZLIB.DLL");

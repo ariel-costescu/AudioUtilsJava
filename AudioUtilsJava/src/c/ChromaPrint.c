@@ -49,18 +49,18 @@ int decode_audio_file(ChromaprintContext *chromaprint_ctx, const char *file_name
 	}
 
 	if (avformat_open_input(&format_ctx, file_name, NULL, NULL) != 0) {
-		fprintf(stderr, "ERROR: couldn't open the file\n");
+		fprintf(stderr, "ERROR: couldn't open the file [%s]\n", file_name);
 		goto done;
 	}
 
 	if (avformat_find_stream_info(format_ctx, NULL) < 0) {
-		fprintf(stderr, "ERROR: couldn't find stream information in the file\n");
+		fprintf(stderr, "ERROR: couldn't find stream information in the file [%s]\n", file_name);
 		goto done;
 	}
 
 	stream_index = av_find_best_stream(format_ctx, AVMEDIA_TYPE_AUDIO, -1, -1, &codec, 0);
 	if (stream_index < 0) {
-		fprintf(stderr, "ERROR: couldn't find any audio stream in the file\n");
+		fprintf(stderr, "ERROR: couldn't find any audio stream in the file [%s]\n", file_name);
 		goto done;
 	}
 
@@ -70,13 +70,13 @@ int decode_audio_file(ChromaprintContext *chromaprint_ctx, const char *file_name
 	codec_ctx->request_sample_fmt = AV_SAMPLE_FMT_S16;
 
 	if (avcodec_open2(codec_ctx, codec, NULL) < 0) {
-		fprintf(stderr, "ERROR: couldn't open the codec\n");
+		fprintf(stderr, "ERROR: couldn't open the codec [%s]\n", file_name);
 		goto done;
 	}
 	codec_ctx_opened = 1;
 
 	if (codec_ctx->channels <= 0) {
-		fprintf(stderr, "ERROR: no channels found in the audio stream\n");
+		fprintf(stderr, "ERROR: no channels found in the audio stream [%s]\n", file_name);
 		goto done;
 	}
 
@@ -91,11 +91,11 @@ int decode_audio_file(ChromaprintContext *chromaprint_ctx, const char *file_name
 			channel_layout, codec_ctx->sample_fmt, codec_ctx->sample_rate,
 			0, NULL);
 		if (!convert_ctx) {
-			fprintf(stderr, "ERROR: couldn't allocate audio converter\n");
+			fprintf(stderr, "ERROR: couldn't allocate audio converter [%s]\n", file_name);
 			goto done;
 		}
 		if (swr_init(convert_ctx) < 0) {
-			fprintf(stderr, "ERROR: couldn't initialize the audio converter\n");
+			fprintf(stderr, "ERROR: couldn't initialize the audio converter [%s]\n", file_name);
 			goto done;
 		}
 #elif defined(HAVE_AVRESAMPLE)
@@ -107,15 +107,15 @@ int decode_audio_file(ChromaprintContext *chromaprint_ctx, const char *file_name
 		av_opt_set_int(convert_ctx, "in_sample_fmt", codec_ctx->sample_fmt, 0);
 		av_opt_set_int(convert_ctx, "in_sample_rate", codec_ctx->sample_rate, 0);
 		if (!convert_ctx) {
-			fprintf(stderr, "ERROR: couldn't allocate audio converter\n");
+			fprintf(stderr, "ERROR: couldn't allocate audio converter [%s]\n", file_name);
 			goto done;
 		}
 		if (avresample_open(convert_ctx) < 0) {
-			fprintf(stderr, "ERROR: couldn't initialize the audio converter\n");
+			fprintf(stderr, "ERROR: couldn't initialize the audio converter [%s]\n", file_name);
 			goto done;
 		}
 #else
-		fprintf(stderr, "ERROR: unsupported audio format (please build fpcalc with libswresample)\n");
+		fprintf(stderr, "ERROR: unsupported audio format (please build fpcalc with libswresample) [%s]\n", file_name);
 		goto done;
 #endif
 	}
@@ -127,7 +127,7 @@ int decode_audio_file(ChromaprintContext *chromaprint_ctx, const char *file_name
 		*duration = format_ctx->duration / AV_TIME_BASE;
 	}
 	else {
-		fprintf(stderr, "ERROR: couldn't detect the audio duration\n");
+		fprintf(stderr, "ERROR: couldn't detect the audio duration [%s]\n", file_name);
 		goto done;
 	}
 
@@ -147,7 +147,7 @@ int decode_audio_file(ChromaprintContext *chromaprint_ctx, const char *file_name
 			got_frame = 0;
 			consumed = avcodec_decode_audio4(codec_ctx, frame, &got_frame, &packet);
 			if (consumed < 0) {
-				fprintf(stderr, "WARNING: error decoding audio\n");
+				fprintf(stderr, "WARNING: error decoding audio [%s]\n", file_name);
 				continue;
 			}
 
@@ -157,7 +157,7 @@ int decode_audio_file(ChromaprintContext *chromaprint_ctx, const char *file_name
 					if (frame->nb_samples > max_dst_nb_samples) {
 						av_freep(&dst_data[0]);
 						if (av_samples_alloc(dst_data, &dst_linsize, codec_ctx->channels, frame->nb_samples, AV_SAMPLE_FMT_S16, 1) < 0) {
-							fprintf(stderr, "ERROR: couldn't allocate audio converter buffer\n");
+							fprintf(stderr, "ERROR: couldn't allocate audio converter buffer [%s]\n", file_name);
 							goto done;
 						}
 						max_dst_nb_samples = frame->nb_samples;
@@ -168,7 +168,7 @@ int decode_audio_file(ChromaprintContext *chromaprint_ctx, const char *file_name
 					if (avresample_convert(convert_ctx, dst_data, 0, frame->nb_samples, (uint8_t **)frame->data, 0, frame->nb_samples) < 0)
 #endif
 					{
-						fprintf(stderr, "ERROR: couldn't convert the audio\n");
+						fprintf(stderr, "ERROR: couldn't convert the audio [%s]\n", file_name);
 						goto done;
 					}
 					data = dst_data;
@@ -191,7 +191,7 @@ int decode_audio_file(ChromaprintContext *chromaprint_ctx, const char *file_name
 
 finish:
 	if (!chromaprint_finish(chromaprint_ctx)) {
-		fprintf(stderr, "ERROR: fingerprint calculation failed\n");
+		fprintf(stderr, "ERROR: fingerprint calculation failed [%s]\n", file_name);
 		goto done;
 	}
 
@@ -218,114 +218,6 @@ done:
 		avformat_close_input(&format_ctx);
 	}
 	return ok;
-}
-
-int fpcalc_main(int argc, char **argv)
-{
-	int i, j, max_length = 120, num_file_names = 0, raw = 0, raw_fingerprint_size, duration;
-	int32_t *raw_fingerprint;
-	char *file_name, *fingerprint, **file_names;
-	ChromaprintContext *chromaprint_ctx;
-	int algo = CHROMAPRINT_ALGORITHM_DEFAULT, num_failed = 0;
-
-	file_names = malloc(argc * sizeof(char *));
-	for (i = 1; i < argc; i++) {
-		char *arg = argv[i];
-		if (!strcmp(arg, "-length") && i + 1 < argc) {
-			max_length = atoi(argv[++i]);
-		}
-		else if (!strcmp(arg, "-version") || !strcmp(arg, "-v")) {
-			printf("fpcalc version %s\n", chromaprint_get_version());
-			return 0;
-		}
-		else if (!strcmp(arg, "-raw")) {
-			raw = 1;
-		}
-		else if (!strcmp(arg, "-algo") && i + 1 < argc) {
-			const char *v = argv[++i];
-			if (!strcmp(v, "test1")) { algo = CHROMAPRINT_ALGORITHM_TEST1; }
-			else if (!strcmp(v, "test2")) { algo = CHROMAPRINT_ALGORITHM_TEST2; }
-			else if (!strcmp(v, "test3")) { algo = CHROMAPRINT_ALGORITHM_TEST3; }
-			else if (!strcmp(v, "test4")) { algo = CHROMAPRINT_ALGORITHM_TEST4; }
-			else {
-				fprintf(stderr, "WARNING: unknown algorithm, using the default\n");
-			}
-		}
-		else if (!strcmp(arg, "-set") && i + 1 < argc) {
-			i += 1;
-		}
-		else {
-			file_names[num_file_names++] = argv[i];
-		}
-	}
-
-	if (!num_file_names) {
-		printf("usage: %s [OPTIONS] FILE...\n\n", argv[0]);
-		printf("Options:\n");
-		printf("  -version      print version information\n");
-		printf("  -length SECS  length of the audio data used for fingerprint calculation (default 120)\n");
-		printf("  -raw          output the raw uncompressed fingerprint\n");
-		printf("  -algo NAME    version of the fingerprint algorithm\n");
-		return 2;
-	}
-
-	av_register_all();
-	av_log_set_level(AV_LOG_ERROR);
-
-	chromaprint_ctx = chromaprint_new(algo);
-
-	for (i = 1; i < argc; i++) {
-		char *arg = argv[i];
-		if (!strcmp(arg, "-set") && i + 1 < argc) {
-			char *name = argv[++i];
-			char *value = strchr(name, '=');
-			if (value) {
-				*value++ = '\0';
-				chromaprint_set_option(chromaprint_ctx, name, atoi(value));
-			}
-		}
-	}
-
-	for (i = 0; i < num_file_names; i++) {
-		file_name = file_names[i];
-		if (!decode_audio_file(chromaprint_ctx, file_name, max_length, &duration)) {
-			fprintf(stderr, "ERROR: unable to calculate fingerprint for file %s, skipping\n", file_name);
-			num_failed++;
-			continue;
-		}
-		if (i > 0) {
-			printf("\n");
-		}
-		printf("FILE=%s\n", file_name);
-		printf("DURATION=%d\n", duration);
-		if (raw) {
-			if (!chromaprint_get_raw_fingerprint(chromaprint_ctx, (void **)&raw_fingerprint, &raw_fingerprint_size)) {
-				fprintf(stderr, "ERROR: unable to calculate fingerprint for file %s, skipping\n", file_name);
-				num_failed++;
-				continue;
-			}
-			printf("FINGERPRINT=");
-			for (j = 0; j < raw_fingerprint_size; j++) {
-				printf("%d%s", raw_fingerprint[j], j + 1 < raw_fingerprint_size ? "," : "");
-			}
-			printf("\n");
-			chromaprint_dealloc(raw_fingerprint);
-		}
-		else {
-			if (!chromaprint_get_fingerprint(chromaprint_ctx, &fingerprint)) {
-				fprintf(stderr, "ERROR: unable to calculate fingerprint for file %s, skipping\n", file_name);
-				num_failed++;
-				continue;
-			}
-			printf("FINGERPRINT=%s\n", fingerprint);
-			chromaprint_dealloc(fingerprint);
-		}
-	}
-
-	chromaprint_free(chromaprint_ctx);
-	free(file_names);
-
-	return num_failed ? 1 : 0;
 }
 
 static jclass classInteger;
