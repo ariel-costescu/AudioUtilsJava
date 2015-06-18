@@ -31,7 +31,7 @@ public class ChromaPrint {
 			Object[] f = c.getFingerprint(path);
 			String fp = (String)f[0];
 			Integer d = (Integer)f[1];
-			String url = "http://api.acoustid.org/v2/lookup?client=ULjKruIh&meta=recordings+releases&duration=" + d + "&fingerprint=" + fp;
+			String url = "http://api.acoustid.org/v2/lookup?format=xml&client=ULjKruIh&meta=recordings+releases&duration=" + d + "&fingerprint=" + fp;
 			URL u;
 			try {
 				u = new URL(url);
