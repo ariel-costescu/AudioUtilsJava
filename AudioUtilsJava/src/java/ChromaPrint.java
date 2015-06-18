@@ -14,12 +14,12 @@ public class ChromaPrint {
 		System.load(audioUtilsLocation + "\\src\\c\\ChromaPrint.dll");
 	}
 
-	public native String[] getFingerprint(String path);
+	public native Object[] getFingerprint(String path);
 
 	public static void main(String[] args) {
 		ChromaPrint c = new ChromaPrint();
 		String path = "C:\\Users\\Public\\Music\\Sample Music\\Kalimba.mp3";
-		String[] f = c.getFingerprint(path);
+		Object[] f = c.getFingerprint(path);
 		System.out.println(f[0]);
 		System.out.println(f[1]);
 	}

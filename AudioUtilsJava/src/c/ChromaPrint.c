@@ -328,12 +328,15 @@ int fpcalc_main(int argc, char **argv)
 	return num_failed ? 1 : 0;
 }
 
+static jclass classInteger;
+static jmethodID midIntegerInit;
+
 JNIEXPORT jobjectArray JNICALL Java_ChromaPrint_getFingerprint(JNIEnv *env, jobject thisObj, jstring path) {
 	const char *pathCStr = (*env)->GetStringUTFChars(env, path, NULL);
 	
 	int algo = CHROMAPRINT_ALGORITHM_DEFAULT, max_length = 120, duration;
 	char *fingerprint;
-	ChromaprintContext *chromaprint_ctx = chromaprint_new(algo);;
+	ChromaprintContext *chromaprint_ctx = chromaprint_new(algo);
 	
 	av_register_all();
 	av_log_set_level(AV_LOG_ERROR);
@@ -348,12 +351,22 @@ JNIEXPORT jobjectArray JNICALL Java_ChromaPrint_getFingerprint(JNIEnv *env, jobj
 		return NULL;
 	}
 	
-	char *durationString;
-	sprintf(durationString, "%d", duration);
-	
-	jclass classString = (*env)->FindClass(env, "java/lang/String");
+	jclass classString = (*env)->FindClass(env, "java/lang/Object");
    	jobjectArray outJNIArray = (*env)->NewObjectArray(env, 2, classString, NULL);
  	(*env)->SetObjectArrayElement(env, outJNIArray, 0, (*env)->NewStringUTF(env, fingerprint));
- 	(*env)->SetObjectArrayElement(env, outJNIArray, 1, (*env)->NewStringUTF(env, durationString));
+
+ 	if (NULL == classInteger) {
+	  classInteger = (*env)->FindClass(env, "java/lang/Integer");
+    }
+ 	if (NULL == classInteger) return NULL;
+    if (NULL == midIntegerInit) {
+	  midIntegerInit = (*env)->GetMethodID(env, classInteger, "<init>", "(I)V");
+    }
+    if (NULL == midIntegerInit) return NULL;
+    jobject newObj = (*env)->NewObject(env, classInteger, midIntegerInit, duration);
+ 	(*env)->SetObjectArrayElement(env, outJNIArray, 1, newObj);
+
+	chromaprint_free(chromaprint_ctx);
+
 	return outJNIArray;
 }
