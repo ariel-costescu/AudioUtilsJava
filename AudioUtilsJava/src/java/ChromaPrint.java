@@ -27,6 +27,7 @@ public class ChromaPrint {
 	public static void main(String[] args) {
 		ChromaPrint c = new ChromaPrint();
 		for (String path : args) {
+			System.out.println(path);
 			Object[] f = c.getFingerprint(path);
 			String fp = (String)f[0];
 			Integer d = (Integer)f[1];
