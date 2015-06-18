@@ -328,40 +328,7 @@ int fpcalc_main(int argc, char **argv)
 	return num_failed ? 1 : 0;
 }
 
-#ifdef _WIN32
-int main(int win32_argc, char **win32_argv)
-{
-	int i, argc = 0, buffsize = 0, offset = 0;
-	char **utf8_argv, *utf8_argv_ptr;
-	wchar_t **argv;
-
-	argv = CommandLineToArgvW(GetCommandLineW(), &argc);
-
-	buffsize = 0;
-	for (i = 0; i < argc; i++) {
-		buffsize += WideCharToMultiByte(CP_UTF8, 0, argv[i], -1, NULL, 0, NULL, NULL);
-	}
-
-	utf8_argv = av_mallocz(sizeof(char *) * (argc + 1) + buffsize);
-	utf8_argv_ptr = (char *)utf8_argv + sizeof(char *) * (argc + 1);
-
-	for (i = 0; i < argc; i++) {
-		utf8_argv[i] = &utf8_argv_ptr[offset];
-		offset += WideCharToMultiByte(CP_UTF8, 0, argv[i], -1, &utf8_argv_ptr[offset], buffsize - offset, NULL, NULL);
-	}
-
-	LocalFree(argv);
-
-	return fpcalc_main(argc, utf8_argv);
-}
-#else
-int main(int argc, char **argv)
-{
-	return fpcalc_main(argc, argv);
-}
-#endif
-
-JNIEXPORT jstring JNICALL Java_ChromaPrint_getFingerprint(JNIEnv *env, jobject thisObj, jstring path) {
+JNIEXPORT jobjectArray JNICALL Java_ChromaPrint_getFingerprint(JNIEnv *env, jobject thisObj, jstring path) {
 	const char *pathCStr = (*env)->GetStringUTFChars(env, path, NULL);
 	
 	int algo = CHROMAPRINT_ALGORITHM_DEFAULT, max_length = 120, duration;
@@ -381,5 +348,12 @@ JNIEXPORT jstring JNICALL Java_ChromaPrint_getFingerprint(JNIEnv *env, jobject t
 		return NULL;
 	}
 	
-	return (*env)->NewStringUTF(env, fingerprint);
+	char *durationString;
+	sprintf(durationString, "%d", duration);
+	
+	jclass classString = (*env)->FindClass(env, "java/lang/String");
+   	jobjectArray outJNIArray = (*env)->NewObjectArray(env, 2, classString, NULL);
+ 	(*env)->SetObjectArrayElement(env, outJNIArray, 0, (*env)->NewStringUTF(env, fingerprint));
+ 	(*env)->SetObjectArrayElement(env, outJNIArray, 1, (*env)->NewStringUTF(env, durationString));
+	return outJNIArray;
 }

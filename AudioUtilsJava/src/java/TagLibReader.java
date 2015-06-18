@@ -1,6 +1,9 @@
 
 public class TagLibReader {
+	final static String audioUtilsLocation;
+	
 	static {
+		audioUtilsLocation = System.getenv("AUDIO_UTILS_LOCATION");
 		System.load("c:\\windows\\system32\\KERNEL32.DLL");
 		System.load("c:\\windows\\system32\\MSVCRT.DLL");
 		System.load("c:\\windows\\system32\\LIBZLIB.DLL");
@@ -10,7 +13,7 @@ public class TagLibReader {
 		System.load("c:\\mingw-w64\\x86_64-5.1.0-posix-seh-rt_v4-rev0\\mingw64\\bin\\LIBSTDC++-6.DLL");
 		System.load("c:\\windows\\system32\\LIBTAG.DLL");
 		System.load("c:\\windows\\system32\\LIBTAG_C.DLL");
-		System.load("C:\\Users\\acostescu\\streams_ml_workspace\\TagLib\\src\\c++\\TagLibReaderCpp.dll");
+		System.load(audioUtilsLocation + "\\src\\c++\\TagLibReaderCpp.dll");
 	}
 
 	public native String[] getTags(String path);
