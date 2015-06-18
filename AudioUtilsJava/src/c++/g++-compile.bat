@@ -1,0 +1,1 @@
+g++ -Wl,--add-stdcall-alias -I"%JAVA_HOME%\include" -I"%JAVA_HOME%\include\win32" -I"C:\Program Files (x86)\taglib\include\taglib" -L"C:\Program Files (x86)\taglib\lib" -shared -o TagLibReaderCpp.dll TagLibReader.cpp -llibtag
