@@ -249,13 +249,16 @@ JNIEXPORT jobjectArray JNICALL Java_ChromaPrint_getFingerprint(JNIEnv *env, jobj
    	jobjectArray outJNIArray = (*env)->NewObjectArray(env, 2, classString, NULL);
  	(*env)->SetObjectArrayElement(env, outJNIArray, 0, (*env)->NewStringUTF(env, fingerprint));
 
- 	//Weird error here causing the int to be cast to java.net.InetAddress on second call to java method if static jclass is reused...
- 	//if (NULL == classInteger) {
-	  classInteger = (*env)->FindClass(env, "java/lang/Integer");
-    //}
+	jclass classIntegerLocal;
+	jmethodID midIntegerInitLocal;
+ 	if (NULL == classInteger) {
+	  classIntegerLocal = (*env)->FindClass(env, "java/lang/Integer");
+	  classInteger = (*env)->NewGlobalRef(env, classIntegerLocal);
+    }
  	if (NULL == classInteger) return NULL;
     if (NULL == midIntegerInit) {
-	  midIntegerInit = (*env)->GetMethodID(env, classInteger, "<init>", "(I)V");
+	  midIntegerInitLocal = (*env)->GetMethodID(env, classInteger, "<init>", "(I)V");
+	  midIntegerInit = (*env)->NewGlobalRef(env, midIntegerInitLocal);
     }
     if (NULL == midIntegerInit) return NULL;
     jobject newObj = (*env)->NewObject(env, classInteger, midIntegerInit, duration);
