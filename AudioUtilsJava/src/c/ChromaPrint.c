@@ -48,23 +48,23 @@ int decode_audio_file(ChromaprintContext *chromaprint_ctx, const char *file_name
 	if (!strcmp(file_name, "-")) {
 		file_name = "pipe:0";
 	}
-
+	
 	int av_return_code = avformat_open_input(&format_ctx, file_name, NULL, NULL);
 	char errbuf[100];
-	if (avformat_open_input_return_code != 0) {
+	if (av_return_code != 0) {
 		av_strerror(av_return_code, errbuf, sizeof(errbuf));
-		fprintf(stderr, "ERROR: couldn't open the file [%s][%s]\n", file_name, errbuf);
+		av_log(NULL, AV_LOG_ERROR, "ERROR: couldn't open the file [%s][%s]\n", file_name, errbuf);
 		goto done;
 	}
 
 	if (avformat_find_stream_info(format_ctx, NULL) < 0) {
-		fprintf(stderr, "ERROR: couldn't find stream information in the file [%s]\n", file_name);
+		av_log(NULL, AV_LOG_ERROR, "ERROR: couldn't find stream information in the file [%s]\n", file_name);
 		goto done;
 	}
 
 	stream_index = av_find_best_stream(format_ctx, AVMEDIA_TYPE_AUDIO, -1, -1, &codec, 0);
 	if (stream_index < 0) {
-		fprintf(stderr, "ERROR: couldn't find any audio stream in the file [%s]\n", file_name);
+		av_log(NULL, AV_LOG_ERROR, "ERROR: couldn't find any audio stream in the file [%s]\n", file_name);
 		goto done;
 	}
 
@@ -74,13 +74,13 @@ int decode_audio_file(ChromaprintContext *chromaprint_ctx, const char *file_name
 	codec_ctx->request_sample_fmt = AV_SAMPLE_FMT_S16;
 
 	if (avcodec_open2(codec_ctx, codec, NULL) < 0) {
-		fprintf(stderr, "ERROR: couldn't open the codec [%s]\n", file_name);
+		av_log(NULL, AV_LOG_ERROR, "ERROR: couldn't open the codec [%s]\n", file_name);
 		goto done;
 	}
 	codec_ctx_opened = 1;
 
 	if (codec_ctx->channels <= 0) {
-		fprintf(stderr, "ERROR: no channels found in the audio stream [%s]\n", file_name);
+		av_log(NULL, AV_LOG_ERROR, "ERROR: no channels found in the audio stream [%s]\n", file_name);
 		goto done;
 	}
 
@@ -95,11 +95,11 @@ int decode_audio_file(ChromaprintContext *chromaprint_ctx, const char *file_name
 			channel_layout, codec_ctx->sample_fmt, codec_ctx->sample_rate,
 			0, NULL);
 		if (!convert_ctx) {
-			fprintf(stderr, "ERROR: couldn't allocate audio converter [%s]\n", file_name);
+			av_log(NULL, AV_LOG_ERROR, "ERROR: couldn't allocate audio converter [%s]\n", file_name);
 			goto done;
 		}
 		if (swr_init(convert_ctx) < 0) {
-			fprintf(stderr, "ERROR: couldn't initialize the audio converter [%s]\n", file_name);
+			av_log(NULL, AV_LOG_ERROR, "ERROR: couldn't initialize the audio converter [%s]\n", file_name);
 			goto done;
 		}
 #elif defined(HAVE_AVRESAMPLE)
@@ -111,15 +111,15 @@ int decode_audio_file(ChromaprintContext *chromaprint_ctx, const char *file_name
 		av_opt_set_int(convert_ctx, "in_sample_fmt", codec_ctx->sample_fmt, 0);
 		av_opt_set_int(convert_ctx, "in_sample_rate", codec_ctx->sample_rate, 0);
 		if (!convert_ctx) {
-			fprintf(stderr, "ERROR: couldn't allocate audio converter [%s]\n", file_name);
+			av_log(NULL, AV_LOG_ERROR, "ERROR: couldn't allocate audio converter [%s]\n", file_name);
 			goto done;
 		}
 		if (avresample_open(convert_ctx) < 0) {
-			fprintf(stderr, "ERROR: couldn't initialize the audio converter [%s]\n", file_name);
+			av_log(NULL, AV_LOG_ERROR, "ERROR: couldn't initialize the audio converter [%s]\n", file_name);
 			goto done;
 		}
 #else
-		fprintf(stderr, "ERROR: unsupported audio format (please build fpcalc with libswresample) [%s]\n", file_name);
+		av_log(NULL, AV_LOG_ERROR, "ERROR: unsupported audio format (please build fpcalc with libswresample) [%s]\n", file_name);
 		goto done;
 #endif
 	}
@@ -131,7 +131,7 @@ int decode_audio_file(ChromaprintContext *chromaprint_ctx, const char *file_name
 		*duration = format_ctx->duration / AV_TIME_BASE;
 	}
 	else {
-		fprintf(stderr, "ERROR: couldn't detect the audio duration [%s]\n", file_name);
+		av_log(NULL, AV_LOG_ERROR, "ERROR: couldn't detect the audio duration [%s]\n", file_name);
 		goto done;
 	}
 
@@ -151,7 +151,7 @@ int decode_audio_file(ChromaprintContext *chromaprint_ctx, const char *file_name
 			got_frame = 0;
 			consumed = avcodec_decode_audio4(codec_ctx, frame, &got_frame, &packet);
 			if (consumed < 0) {
-				fprintf(stderr, "WARNING: error decoding audio [%s]\n", file_name);
+				av_log(NULL, AV_LOG_WARNING, "WARNING: error decoding audio [%s]\n", file_name);
 				continue;
 			}
 
@@ -161,7 +161,7 @@ int decode_audio_file(ChromaprintContext *chromaprint_ctx, const char *file_name
 					if (frame->nb_samples > max_dst_nb_samples) {
 						av_freep(&dst_data[0]);
 						if (av_samples_alloc(dst_data, &dst_linsize, codec_ctx->channels, frame->nb_samples, AV_SAMPLE_FMT_S16, 1) < 0) {
-							fprintf(stderr, "ERROR: couldn't allocate audio converter buffer [%s]\n", file_name);
+							av_log(NULL, AV_LOG_ERROR, "ERROR: couldn't allocate audio converter buffer [%s]\n", file_name);
 							goto done;
 						}
 						max_dst_nb_samples = frame->nb_samples;
@@ -172,7 +172,7 @@ int decode_audio_file(ChromaprintContext *chromaprint_ctx, const char *file_name
 					if (avresample_convert(convert_ctx, dst_data, 0, frame->nb_samples, (uint8_t **)frame->data, 0, frame->nb_samples) < 0)
 #endif
 					{
-						fprintf(stderr, "ERROR: couldn't convert the audio [%s]\n", file_name);
+						av_log(NULL, AV_LOG_ERROR, "ERROR: couldn't convert the audio [%s]\n", file_name);
 						goto done;
 					}
 					data = dst_data;
@@ -195,7 +195,7 @@ int decode_audio_file(ChromaprintContext *chromaprint_ctx, const char *file_name
 
 finish:
 	if (!chromaprint_finish(chromaprint_ctx)) {
-		fprintf(stderr, "ERROR: fingerprint calculation failed [%s]\n", file_name);
+		av_log(NULL, AV_LOG_ERROR, "ERROR: fingerprint calculation failed [%s]\n", file_name);
 		goto done;
 	}
 
@@ -232,12 +232,9 @@ static const int max_length = 120;
 JNIEXPORT jobjectArray JNICALL Java_ChromaPrint_getFingerprint(JNIEnv *env, jobject thisObj, jstring path) {
 	const char *pathCStr = (*env)->GetStringUTFChars(env, path, NULL);
 	
-	int duration;
-	char *fingerprint;
+	int duration = 0;
+	char *fingerprint = "";
 	ChromaprintContext *chromaprint_ctx = chromaprint_new(algo);
-	
-	av_register_all();
-	av_log_set_level(AV_LOG_ERROR);
 	
 	if (!decode_audio_file(chromaprint_ctx, pathCStr, max_length, &duration)) {
 		chromaprint_free(chromaprint_ctx);
@@ -272,4 +269,9 @@ JNIEXPORT jobjectArray JNICALL Java_ChromaPrint_getFingerprint(JNIEnv *env, jobj
 	free(fingerprint);
 
 	return outJNIArray;
+}
+
+JNIEXPORT void JNICALL Java_ChromaPrint_init(JNIEnv *env, jobject thisObj) {
+	av_register_all();
+	av_log_set_level(AV_LOG_ERROR);
 }

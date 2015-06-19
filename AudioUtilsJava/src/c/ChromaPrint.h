@@ -10,10 +10,18 @@ extern "C" {
 /*
  * Class:     ChromaPrint
  * Method:    getFingerprint
- * Signature: (Ljava/lang/String;)[Ljava/lang/String;
+ * Signature: (Ljava/lang/String;)[Ljava/lang/Object;
  */
 JNIEXPORT jobjectArray JNICALL Java_ChromaPrint_getFingerprint
-  (JNIEnv *, jobject, jstring);
+  (JNIEnv *, jclass, jstring);
+
+/*
+ * Class:     ChromaPrint
+ * Method:    init
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_ChromaPrint_init
+  (JNIEnv *, jclass);
 
 #ifdef __cplusplus
 }

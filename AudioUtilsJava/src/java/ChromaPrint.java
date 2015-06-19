@@ -19,15 +19,16 @@ public class ChromaPrint {
 		System.load("c:\\windows\\system32\\SHELL32.DLL");
 		System.load("C:\\chromaprint\\bin\\libchromaprint.dll");
 		System.load(audioUtilsLocation + "\\src\\c\\ChromaPrint.dll");
+		init();
 	}
 
-	public native Object[] getFingerprint(String path);
+	public static native Object[] getFingerprint(String path);
+	private static native void init();
 
 	public static void main(String[] args) {
-		ChromaPrint c = new ChromaPrint();
 		for (String path : args) {
 			System.out.println(path);
-			Object[] f = c.getFingerprint(path);
+			Object[] f = ChromaPrint.getFingerprint(path);
 			String fp = (String)f[0];
 			Integer d = (Integer)f[1];
 			String url = "http://api.acoustid.org/v2/lookup?format=xml&client=ULjKruIh&meta=recordings+releases&duration=" + d + "&fingerprint=" + fp;
