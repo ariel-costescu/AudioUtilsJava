@@ -5,6 +5,7 @@
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libavutil/opt.h>
+#include <libavutil/error.h>
 
 #if defined(HAVE_SWRESAMPLE)
 #include <libswresample/swresample.h>
@@ -48,8 +49,11 @@ int decode_audio_file(ChromaprintContext *chromaprint_ctx, const char *file_name
 		file_name = "pipe:0";
 	}
 
-	if (avformat_open_input(&format_ctx, file_name, NULL, NULL) != 0) {
-		fprintf(stderr, "ERROR: couldn't open the file [%s]\n", file_name);
+	int av_return_code = avformat_open_input(&format_ctx, file_name, NULL, NULL);
+	char errbuf[100];
+	if (avformat_open_input_return_code != 0) {
+		av_strerror(av_return_code, errbuf, sizeof(errbuf));
+		fprintf(stderr, "ERROR: couldn't open the file [%s][%s]\n", file_name, errbuf);
 		goto done;
 	}
 
