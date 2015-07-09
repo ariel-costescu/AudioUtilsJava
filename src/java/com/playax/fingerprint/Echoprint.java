@@ -7,7 +7,6 @@ public class Echoprint {
 		codegenLocation = System.getProperty("CODEGEN_LOCATION", System.getenv("CODEGEN_LOCATION"));
 		System.load("c:\\windows\\system32\\KERNEL32.DLL");
 		System.load("c:\\windows\\system32\\MSVCRT.DLL");
-		System.load("c:\\windows\\system32\\LIBZLIB.DLL");
 		System.load("c:\\windows\\system32\\USER32.DLL");
 		System.load("c:\\mingw-w64\\x86_64-5.1.0-posix-seh-rt_v4-rev0\\mingw64\\bin\\LIBWINPTHREAD-1.DLL");
 		System.load("c:\\mingw-w64\\x86_64-5.1.0-posix-seh-rt_v4-rev0\\mingw64\\bin\\LIBGCC_S_SEH-1.DLL");
